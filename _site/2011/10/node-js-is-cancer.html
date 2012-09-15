@@ -54,22 +54,49 @@ This statement is enticing, encouraging, and completely fucking wrong.</p>
 
 <p>Here's a fun fact: every function call that does CPU work also blocks. This function, which calculates the n'th Fibonacci number, will block the current thread of execution because it's using the CPU.
 
+<div class="highlight"><pre><code class="js"><span class="kd">function</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">n</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">n</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="k">else</span>
+    <span class="k">return</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="nx">fibonacci</span><span class="p">(</span><span class="nx">n</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
 
 
 <em>(Yes, I know there's a closed form solution. Shouldn't you be in front of a mirror somewhere, figuring out how to introduce yourself to her?.)</em></p>
 
 <p>Let's see what happens to a node.js program that has this little gem as its request handler:</p>
 
+<div class="highlight"><pre><code class="js"><span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">writeHead</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;Content-Type&#39;</span><span class="o">:</span> <span class="s1">&#39;text/plain&#39;</span><span class="p">});</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">fibonacci</span><span class="p">(</span><span class="mi">40</span><span class="p">));</span>
+<span class="p">}).</span><span class="nx">listen</span><span class="p">(</span><span class="mi">1337</span><span class="p">,</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">);</span>
+</code></pre>
+</div>
 
 
 <p>
 On my older laptop, this is the result:
 
+<div class="highlight"><pre><code class="console"><span class="gp">ted@lorenz:~$</span> <span class="nb">time </span>curl http://localhost:1337/
+<span class="go">165580141</span>
+<span class="go">real	0m5.676s</span>
+<span class="go">user	0m0.010s</span>
+<span class="go">sys	0m0.000s</span>
+</code></pre>
+</div>
 
 
 5 second response time. Cool. So we all know JavaScript isn't a terribly fast language, but why is this such an indictment? It's because Node's evented model and brain damaged fanboys make you think everything is OK. In really abusive pseudocode, this is how an event loop works:
 </p>
 
+<div class="highlight"><pre><code class="cpp"><span class="k">while</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">ready_file_descriptor</span> <span class="o">=</span> <span class="n">event_library</span><span class="o">-&gt;</span><span class="n">poll</span><span class="p">();</span>
+  <span class="n">handle_request</span><span class="p">(</span><span class="n">ready_file_descriptor</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
 
 
 <p>
@@ -77,6 +104,12 @@ That's all well and good if you know what you're doing, but when you apply this 
 
 <p>So, given that, let's see how my little node server behaves under the most modest load, 10 requests, 5 concurrent:
 
+<div class="highlight"><pre><code class="console"><span class="gp">ted@lorenz:~$</span> ab -n 10 -c 5 http://localhost:1337/
+<span class="go">...</span>
+<span class="go">Requests per second:    0.17 [#/sec] (mean)</span>
+<span class="go">...</span>
+</code></pre>
+</div>
 
 
 
@@ -104,6 +137,11 @@ That's all well and good if you know what you're doing, but when you apply this 
 
 <p>This is probably the worst thing any server-side framework can do: be written in JavaScript.
 
+<div class="highlight"><pre><code class="js"><span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">my_var</span> <span class="o">!==</span> <span class="s2">&quot;undefined&quot;</span> <span class="o">&amp;&amp;</span> <span class="nx">my_var</span> <span class="o">!==</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// you idiots put Rasmus Lerdorf to shame</span>
+<span class="p">}</span>
+</code></pre>
+</div>
 
 
 What is this I don't even...
